@@ -19,6 +19,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+
 public class Project20Java {
 	public static void main(String[] args) throws URISyntaxException, IOException {
 		new Configure();
@@ -31,19 +32,20 @@ class Configure{
 	
 	private int port=9999;
 	private  HttpServer httpServer;
-	private String valores[]= {"Led1 OFF","Led2 OFF","Led3 OFF"};
+	private String values[]= {"Led1 OFF","Led2 OFF","Led3 OFF"};
+	private String stringIPadress;
+	private Host host;
 	
 	public Configure() throws IOException, URISyntaxException {
 		
-    	Host host=new Host(port);  	
-    	String DireccionIP=host.getIPadress();	
+    	host=new Host(port);  	
+    	stringIPadress=host.getIPadress();	
 
 		httpServer = HttpServer.create(new InetSocketAddress(port), 0);		
 		
-		httpServer.createContext("/", new Home(DireccionIP, port));
+		httpServer.createContext("/", new Home(stringIPadress, port));
 		httpServer.createContext("/shutdown", new ShutDown(httpServer));
-		httpServer.createContext("/execute1", new Execute1(DireccionIP, port, valores));
-		httpServer.createContext("/execute2", new Execute2(DireccionIP, port, valores));
+		httpServer.createContext("/execute", new Execute(values));
 
     	httpServer.setExecutor(null);
     	httpServer.start(); 	
@@ -64,11 +66,11 @@ class Host{
 
 		SOName=System.getProperty("os.name");
 		
-		if(SOName.equals("Linux")) {		//You are in Linux
+		if(SOName.equals("Linux")) {		//You are in Linux (Raspberry Pi)
 
 			new GPIO();		// Load Pi4J.	
 			
-			//I get the IP address in linux
+			//Get the IP address in linux
 			stringBuilder = new StringBuilder();
 			Process p = Runtime.getRuntime().exec("ifconfig wlan0");                                                                                                                                               
 			BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -79,11 +81,11 @@ class Host{
 			splits = stringText.split("inet|netmask");	
 			stringIPadress=splits[1].toString();
 			stringIPadress=stringIPadress.replaceAll("\\s", "");	
-			//I get the IP address in linux
+			//Get the IP address in linux
 						
-			Runtime.getRuntime().exec("xdg-open http://localhost:"+ port);		//Open main page
+			Runtime.getRuntime().exec("xdg-open http://localhost:"+ port);		//Open Home page
 			
-		}else {								//You're not on linux
+		}else {								//You're not on Linux
 			JOptionPane.showMessageDialog(null, "This program must be run on Raspberry", "ERROR MESSAGE", JOptionPane.ERROR_MESSAGE);
 			System.exit(0);
 		}		
@@ -125,24 +127,21 @@ class Home implements HttpHandler{
 	private String stringIPadress;
 	private OutputStream outputStream;
 	private String response;
-
 	
-	public Home(String IPadress, int port) {
+	public Home(String stringIPadress, int port) {
 		this.port=port;
-		this.stringIPadress=IPadress;		
+		this.stringIPadress=stringIPadress;		
 	}
 	
 	public void handle(HttpExchange he) throws IOException {
 
 		response=
-				"<!DOCTYPE html>"+
-	    		"<html>"+
-	    		"<body>"+
+				"<!DOCTYPE html>"+"<html>"+"<body>"+
 	    		
 	    		"<h1> Home </h1>" +
-	    		"<h2>" + "IP adress  "+ stringIPadress +":"+ port +"</h2>"+
+	    		"<h2>" + "IP adress Server "+ stringIPadress +":"+ port +"</h2>"+
 	    						
-				"<form action=\"/execute1\" method=\"get\">" + 
+				"<form action=\"/executeOFF\" method=\"get\">" + 
 				"<p> START </p>" +  
 				"<button name=\"subject\" type=\"submit\" value=\"CLICK\">" + "CLICK" + "</button>" + 		
 				"</form>"+
@@ -152,8 +151,7 @@ class Home implements HttpHandler{
 				"<input type=\"button\" value=\"CLICK\" onclick=\"window.location.href='/shutdown'\">" + 
 				"</form>"+			
 							
-				"</body>"+
-				"</html>";
+				"</body>"+"</html>";
 
 		he.sendResponseHeaders(200, response.length());            
 		outputStream = he.getResponseBody();
@@ -164,43 +162,35 @@ class Home implements HttpHandler{
 //PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
-class Execute1 implements HttpHandler{
+class Execute implements HttpHandler{
 	
 	private OutputStream outputStream;
-	private int port;
-	private String stringIPadress;
 	private String stringReceived;
-	private String[] valores;
+	private String[] values;
 	private String response;
 	
-	public Execute1(String IPadress, int port, String[] valores) {
-		this.valores=valores;
-		this.port=port;
-		this.stringIPadress=IPadress;		
+	public Execute(String[] values) {
+		this.values=values;	
 	}
 
 	public void handle(HttpExchange he) throws IOException {
 		
 		stringReceived=he.getRequestURI().getQuery();			
-		executeMethodPut1();
-		
+		executeMethodPut();
+
 		response=		
-				"<!DOCTYPE html>"+
-	    		"<html>"+
-	    		"<body>"+
+				"<!DOCTYPE html>"+"<html>"+"<body>"+
 	    		
 	    		"<h1> Running </h1>" +
-	    		"<h2>" + "IP adress  "+ stringIPadress +":"+ port +"</h2>"+
-	  
-				"<form action=\"/execute2\" method=\"get\">" + 				
-				"<br>"+				
-				"<button name=\"subject\" type=\"submit\" value=\"Led1\">" + valores[0] + "</button>" + 		
+
+				"<form action=\"/execute\" method=\"get\">" + 							
+				"<button name=\"subject\" type=\"submit\" value=\"Led1\">" + values[0] + "</button>" + 		
 				"<br>"+
 				"<br>"+				
-				"<button name=\"subject\" type=\"submit\" value=\"Led2\">" + valores[1] + "</button>" + 				
+				"<button name=\"subject\" type=\"submit\" value=\"Led2\">" + values[1] + "</button>" + 				
 				"<br>"+
 				"<br>"+				
-				"<button name=\"subject\" type=\"submit\" value=\"Led3\">" + valores[2] + "</button>" +			
+				"<button name=\"subject\" type=\"submit\" value=\"Led3\">" + values[2] + "</button>" +			
 				"</form>"+
 				
 				"<p> Shut Down </p>" + 
@@ -208,8 +198,7 @@ class Execute1 implements HttpHandler{
 				"<input type=\"button\" value=\"CLICK\" onclick=\"window.location.href='/shutdown'\">" + 
 				"</form>"+	
 			
-				"</body>"+
-				"</html>";
+				"</body>"+"</html>";
 			
 		he.sendResponseHeaders(200, response.length());            
 		outputStream = he.getResponseBody();
@@ -217,95 +206,35 @@ class Execute1 implements HttpHandler{
 		outputStream.close();	
 	}
 	
-	public void executeMethodPut1() {
+	public void executeMethodPut() {
 
 		if(stringReceived.equals("subject=Led1")) {	
-			GPIO.GPIO_1.low();
-			valores[0]="Led1 OFF";
+			GPIO.GPIO_1.toggle();
+			if(GPIO.GPIO_1.isHigh()) {
+				values[0]="Led2 ON";
+			}else {
+				values[0]="Led2 OFF";
+			}
 		}		
 		if(stringReceived.equals("subject=Led2")) {	
-			GPIO.GPIO_2.low();
-			valores[1]="Led2 OFF";
+			GPIO.GPIO_2.toggle();
+			if(GPIO.GPIO_2.isHigh()) {
+				values[1]="Led2 ON";
+			}else {
+				values[1]="Led2 OFF";
+			}			
 		}		
 		if(stringReceived.equals("subject=Led3")) {	
-			GPIO.GPIO_3.low();
-			valores[2]="Led3 OFF";
+			GPIO.GPIO_3.toggle();
+			if(GPIO.GPIO_3.isHigh()) {
+				values[2]="Led2 ON";
+			}else {
+				values[2]="Led2 OFF";
+			}	
 		}
 	}
 }
 ///wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
-
-//bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-class Execute2 implements HttpHandler{
-	
-	private OutputStream outputStream;
-	private int port;
-	private String stringIPadress;
-	private String stringReceived;
-	private String[] valores;
-	private String response;
-	
-	public Execute2(String IPadress, int port, String[] valores) {
-		this.valores=valores;
-		this.port=port;
-		this.stringIPadress=IPadress;		
-	}
-
-	public void handle(HttpExchange he) throws IOException {
-		
-		stringReceived=he.getRequestURI().getQuery();			
-		executeMethodPut2();
-
-		response=		
-				"<!DOCTYPE html>"+
-	    		"<html>"+
-	    		"<body>"+
-	    		
-	    		"<h1> Running </h1>" +
-	    		"<h2>" + "IP adress  "+ stringIPadress +":"+ port +"</h2>"+
-				
-				"<form action=\"/execute1\" method=\"get\">" + 				
-				"<br>"+				
-				"<button name=\"subject\" type=\"submit\" value=\"Led1\">" + valores[0] + "</button>" + 			
-				"<br>"+
-				"<br>"+			
-				"<button name=\"subject\" type=\"submit\" value=\"Led2\">" + valores[1] + "</button>" + 				
-				"<br>"+
-				"<br>"+			
-				"<button name=\"subject\" type=\"submit\" value=\"Led3\">" + valores[2] + "</button>" +
-				"</form>"+
-				
-				"<p> Shut Down </p>" + 
-				"<form method=\"get\">" + 
-				"<input type=\"button\" value=\"CLICK\" onclick=\"window.location.href='/shutdown'\">" + 
-				"</form>"+			
-			
-				"</body>"+
-				"</html>";
-		
-		he.sendResponseHeaders(200, response.length());            
-		outputStream = he.getResponseBody();
-		outputStream.write(response.getBytes());
-		outputStream.close();		
-	}
-	
-	public void executeMethodPut2() {
-		
-		if(stringReceived.equals("subject=Led1")) {	
-			GPIO.GPIO_1.high();
-			valores[0]="Led1  ON";
-		}		
-		if(stringReceived.equals("subject=Led2")) {	
-			GPIO.GPIO_2.high();
-			valores[1]="Led2  ON";
-		}		
-		if(stringReceived.equals("subject=Led3")) {	
-			GPIO.GPIO_3.high();
-			valores[2]="Led3  ON";
-		}
-	}
-}
-//bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 //Hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
 class ShutDown implements HttpHandler{
@@ -322,9 +251,8 @@ class ShutDown implements HttpHandler{
 		response=				
 				"<!DOCTYPE html>"+
 	    		"<html>"+
-	    		"<body>"+
-	    		
-				"<h1> Goodbye </h1>" +
+	    		"<body>"+    		
+				"<h1> Server Closed </h1>" +
 				"</body>"+
 				"</html>";
 		
@@ -333,10 +261,13 @@ class ShutDown implements HttpHandler{
 		outputStream.write(response.getBytes());
 		outputStream.close(); 
 		httpServer.stop(1);
-		GPIO.gpioController.shutdown();
 		GPIO.turnOffGPIO() ;
+		GPIO.gpioController.shutdown();
 		System.exit(0);
 	}
 }
 //Hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+
+
+
 
