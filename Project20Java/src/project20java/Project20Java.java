@@ -172,7 +172,6 @@ class Execute implements HttpHandler{
 	public Execute(String[] values) {
 		this.values=values;	
 	}
-
 	public void handle(HttpExchange he) throws IOException {
 		
 		stringReceived=he.getRequestURI().getQuery();			
@@ -183,14 +182,17 @@ class Execute implements HttpHandler{
 	    		
 	    		"<h1> Running </h1>" +
 
-				"<form action=\"/execute\" method=\"get\">" + 							
+				"<form action=\"/execute\" method=\"get\">" + 		
+				"<button name=\"subject\" type=\"submit\" value=\"Refresh\">" + "Refresh" + "</button>" +
+				"<br>"+
+				"<br>"+				
 				"<button name=\"subject\" type=\"submit\" value=\"Led1\">" + values[0] + "</button>" + 		
 				"<br>"+
 				"<br>"+				
 				"<button name=\"subject\" type=\"submit\" value=\"Led2\">" + values[1] + "</button>" + 				
 				"<br>"+
 				"<br>"+				
-				"<button name=\"subject\" type=\"submit\" value=\"Led3\">" + values[2] + "</button>" +			
+				"<button name=\"subject\" type=\"submit\" value=\"Led3\">" + values[2] + "</button>" +	
 				"</form>"+
 				
 				"<p> Shut Down </p>" + 
@@ -231,6 +233,24 @@ class Execute implements HttpHandler{
 			}else {
 				values[2]="Led2 OFF";
 			}	
+		}
+		if(stringReceived.equals("subject=Refresh")) {
+			System.out.println("refresca");		
+			if(GPIO.GPIO_1.isHigh()) {
+				values[0]="Led2 ON";
+			}else {
+				values[0]="Led2 OFF";
+			}			
+			if(GPIO.GPIO_2.isHigh()) {
+				values[1]="Led2 ON";
+			}else {
+				values[1]="Led2 OFF";
+			}				
+			if(GPIO.GPIO_3.isHigh()) {
+				values[2]="Led2 ON";
+			}else {
+				values[2]="Led2 OFF";
+			}			
 		}
 	}
 }
